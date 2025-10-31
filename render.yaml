@@ -1,0 +1,55 @@
+# render.yaml - Deploy Saleor 3.22 with Supabase and Render Redis
+
+services:
+  # 🟩 API Service (Django backend)
+  - type: web
+    name: saleor-api
+    env: docker
+    image: ghcr.io/saleor/saleor:3.22
+    plan: starter
+    envVars:
+      - key: DATABASE_URL
+        value: postgres://<SUPABASE_USER>:<SUPABASE_PASSWORD>@<SUPABASE_HOST>:5432/<SUPABASE_DB>
+      - key: REDIS_URL
+        value: redis://default:${REDIS_PASSWORD}@${REDIS_HOST}:${REDIS_PORT}/0
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ALLOWED_HOSTS
+        value: .onrender.com
+      - key: DASHBOARD_URL
+        value: https://saleor-dashboard.onrender.com/
+      - key: DEFAULT_FROM_EMAIL
+        value: saleor@example.com
+      - key: EMAIL_URL
+        value: smtp://user:password@smtp.example.com:587
+      - key: JAEGER_AGENT_HOST
+        value: ""
+      - key: JAEGER_AGENT_PORT
+        value: ""
+    healthCheckPath: /graphql/
+    autoDeploy: true
+
+  # 🟨 Worker Service (Celery)
+  - type: background
+    name: saleor-worker
+    env: docker
+    image: ghcr.io/saleor/saleor:3.22
+    dockerCommand: celery -A saleor --app=saleor.celeryconf:app worker --loglevel=info -B
+    envVars:
+      - key: DATABASE_URL
+        value: postgres://<SUPABASE_USER>:<SUPABASE_PASSWORD>@<SUPABASE_HOST>:5432/<SUPABASE_DB>
+      - key: REDIS_URL
+        value: redis://default:${REDIS_PASSWORD}@${REDIS_HOST}:${REDIS_PORT}/0
+      - key: SECRET_KEY
+        sync: saleor-api:SECRET_KEY
+
+  # 🟦 Dashboard (React Admin UI)
+  - type: static
+    name: saleor-dashboard
+    env: static
+    image: ghcr.io/saleor/saleor-dashboard:latest
+    staticPublishPath: /
+    buildCommand: ""
+    envVars:
+      - key: API_URI
+        value: https://saleor-api.onrender.com/graphql/
