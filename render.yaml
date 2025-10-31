@@ -31,13 +31,13 @@ services:
       - key: SECRET_KEY
         sync: saleor-api:SECRET_KEY
 
-  # 🟦 Dashboard
-  - type: static
+  # 🟦 Dashboard (React Admin UI)
+  - type: web
     name: saleor-dashboard
     env: static
-    image: ghcr.io/saleor/saleor-dashboard:latest
-    staticPublishPath: /
     buildCommand: ""
+    staticPublishPath: /
+    image: ghcr.io/saleor/saleor-dashboard:latest
     envVars:
       - key: API_URI
         value: https://saleor-api.onrender.com/graphql/
